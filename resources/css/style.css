@@ -1,0 +1,32 @@
+/* Main Styling file
+Color Palette:
+--space-cadet: hsla(221, 45%, 19%, 1);
+--star-command-blue: hsla(202, 93%, 40%, 1);
+--alabaster: hsla(65, 27%, 92%, 1);
+--opera-mauve: hsla(324, 24%, 58%, 1);
+--irresistible: hsla(338, 45%, 49%, 1);
+--cardinal: hsla(351, 80%, 44%, 1);*/
+
+/*General Styles*/
+body {
+    background-color: hsla(221, 45%, 19%, 1);
+    color: hsla(65, 27%, 92%, 1);
+  }
+
+  li {
+    font-size: 1.15rem;
+    font-family: Montserrat;
+  }
+
+  p {
+    font-size: 1.15rem;
+    font-family: Montserrat;
+    margin: 15px;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: Comfortaa, Helvetica, sans-serif;
+    background-color: hsla(202, 93%, 40%, 1);
+    padding: 5px;
+    text-align: center;
+  }
