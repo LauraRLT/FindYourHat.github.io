@@ -15,10 +15,14 @@ class Field {
     this.field = [];
     this.playerY = 0;
     this.playerX = 0;
-    this.fieldHeight = 1;
-    this.fieldWidth = 1;
+    this.fieldHeight = 0;
+    this.fieldWidth = 0;
     this.hatX = 0;
     this.hatY = 0;
+    //properties used to check if field is solvable
+    this.solver = [];
+    this.solverWasHere = [];
+    this.booleanField = []
   }
   badNumber(number) {
     if (
@@ -32,63 +36,104 @@ class Field {
   }
 
   generateField() {
-    this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
-    while (this.badNumber(this.fieldWidth)) {
-      this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
-    }
-    this.fieldHeight = Number(prompt(`Field height (${minSize}-${maxSize}):)`));
-    while (this.badNumber(this.fieldHeight)) {
-      this.fieldHeight = Number(
-        prompt(`Field height (${minSize}-${maxSize}): `)
-      );
-    }
     this.field = [];
-    let fieldItem = 4;
+    let fieldItem = 0;
     let rowItems = [];
+    let solverRowItems = [];
+    let booleanRowItems = []
     let holeTotalCount = 0;
     let holeRowCount = 0;
-
-    this.hatX = Math.floor(Math.random() * (this.fieldWidth - 2)) + 1;
-    this.hatY = Math.floor(Math.random() * (this.fieldHeight - 2)) + 1;
+    let minXDistance = Math.max(2,Math.floor(this.fieldWidth / 5));
+    let minYDistance = Math.max(2,Math.floor(this.fieldHeight / 5));
+    
+    this.playerX = Math.floor(Math.random() * (this.fieldWidth));
+    this.playerY = Math.floor(Math.random() * (this.fieldHeight));
+    
+    do {
+      this.hatX = Math.floor(Math.random() * (this.fieldWidth));
+      this.hatY = Math.floor(Math.random() * (this.fieldHeight));
+    } while (Math.abs(this.hatX-this.playerX) < minXDistance && Math.abs(this.hatY-this.playerY) < minYDistance)
 
     for (let y = 0; y < this.fieldHeight; y++) {
       for (let x = 0; x < this.fieldWidth; x++) {
-        if (x === 0 && y === 0) fieldItem = 5;
+        if (x === this.playerX && y === this.playerY) fieldItem = 5;
         else if (x === this.hatX && y === this.hatY) fieldItem = 4;
         else fieldItem = Math.floor(Math.random() * 4);
+        solverRowItems.push(false);
         switch (fieldItem) {
           case 5:
             rowItems.push(playerCharacter);
+            booleanRowItems.push(false);
             break;
           case 4:
             rowItems.push(hat);
+            booleanRowItems.push(false);
             break;
           case 3:
             if (
-              holeTotalCount / (this.fieldHeight * this.fieldWidth) >=
-                holePercent ||
-              holeRowCount / this.fieldWidth >= maxHolePerRow
-            )
+              holeTotalCount / (this.fieldHeight * this.fieldWidth) >= holePercent 
+              || holeRowCount / this.fieldWidth >= maxHolePerRow
+            ){
               rowItems.push(fieldCharacter);
+              booleanRowItems.push(false);
+            }
             else {
               rowItems.push(hole);
+              booleanRowItems.push(true);
               holeTotalCount++;
               holeRowCount++;
             }
             break;
           default:
             rowItems.push(fieldCharacter);
+            booleanRowItems.push(false);
             break;
         }
       }
       this.field.push(rowItems);
+      this.solver.push(solverRowItems)
+      this.solverWasHere.push(solverRowItems)
+      this.booleanField.push(booleanRowItems)
       rowItems = [];
+      solverRowItems = [];
+      booleanRowItems = [];
       holeRowCount = 0;
     }
+    if(this.validateField(this.playerX, this.playerY))
     console.log();
+    else this.generateField()
   }
 
-  validateField() {}
+  validateField(x,y) {
+    //if reached end
+    if (x === this.hatX && y === this.hatY) return true 
+    //if solver was already here or current coords is a hole
+    if (this.booleanField[y][x] || this.solverWasHere[y][x]) return false;
+    this.solverWasHere[y][x] = true;
+    if (x != 0) //if not on left edge
+      if (this.validateField(x-1,y)) { //checks to the left
+        this.solver[y][x] = true
+        return true
+      }
+    if (x != this.fieldWidth -1) { //if not on right edge
+      if(this.validateField(x+1,y)) { //checks to the right
+        this.solver[y][x] = true
+        return true
+      }
+    }
+    if (y != 0) //if not on top edge
+      if (this.validateField(x,y-1)) { //checks above
+        this.solver[y][x] = true
+        return true
+      }
+    if (y != this.fieldHeight -1) { //if not on bottom edge
+      if(this.validateField(x,y+1)) { //checks below
+        this.solver[y][x] = true
+        return true
+      }
+    }
+    return false;
+  }
   
   print() {
     //console.clear();
@@ -184,6 +229,7 @@ class Field {
       return true;
     } else return false;
   }
+  
   playGame() {
     console.log(`Welcome to my version of the find your hat game!\n
 Instructions
@@ -201,9 +247,17 @@ Use wasd for movement
   s for down ↓
   d for right →
 
-Warning: I can not yet guarantee that every game can be won. That code is still in development.
-
-Start by inputting the size of the field\n`);
+Start by inputting the size of the field\n`);  
+    this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
+    while (this.badNumber(this.fieldWidth)) {
+      this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
+    }
+    this.fieldHeight = Number(prompt(`Field height (${minSize}-${maxSize}):)`));
+    while (this.badNumber(this.fieldHeight)) {
+      this.fieldHeight = Number(
+        prompt(`Field height (${minSize}-${maxSize}): `)
+      );
+    }
     this.generateField();
     while (!this.isOutOfBounds() && !this.isWin() && !this.isHole()) {
       this.print();
@@ -213,6 +267,19 @@ Start by inputting the size of the field\n`);
       }
       this.movePlayer();
     }
+  }
+
+  printField(array) {
+    //console.clear();
+    let row = "";
+    array.forEach((y) => {
+      y.forEach((x) => {
+        row += ' ' + x;
+        if(x === true) row += ' '
+      });
+      console.log(row);
+      row = "";
+    });
   }
 }
 
