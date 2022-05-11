@@ -1,9 +1,10 @@
 const prompt = require("prompt-sync")({ sigint: true });
+const term = require("terminal-kit").terminal;
 
 const hat = "^";
 const hole = "O";
-const fieldCharacter = "░";
-const pathCharacter = "▓";
+const fieldCharacter = "▓";
+const pathCharacter = "░";
 const playerCharacter = "*";
 const holePercent = 0.4;
 const maxHolePerRow = 0.35;
@@ -89,34 +90,59 @@ class Field {
   }
 
   validateField() {}
-  
+
   print() {
-    //console.clear();
-    let row = "┌";
-    //create top border
-    for (let i = 0; i < this.fieldWidth; i++) {
-      row+= "─";
-    }
-    row+= "┐";
-    console.log(row);
-    row = "│";
-    this.field.forEach((y) => {
-      y.forEach((x) => {
-        row = row + x;
+    console.clear();
+    return new Promise((resolve, reject) => {
+      let row = " ";
+      //print top border
+      term.bgMagenta("┌");
+      for (let i = 0; i < this.fieldWidth; i++) {
+        term.bgMagenta("─");
+      }
+      term.bgMagenta("┐");
+      term("\n");
+      //print main field
+      this.field.forEach((y) => {
+        y.forEach((x) => {
+          row = row + x;
+        });
+        row = row + " ";
+        for (let i = 0; i < this.fieldWidth + 1; i++) {
+          switch (row[i]) {
+            case hat:
+              term.green.bgBlack(row[i]);
+              break;
+            case hole:
+              term.red.bgBlack(row[i]);
+              break;
+            case fieldCharacter:
+              term.black.bgWhite(row[i]);
+              break;
+            case playerCharacter:
+              term.cyan.bgBlack(row[i]);
+              break;
+            case pathCharacter:
+              term.black.bgWhite(row[i]);
+              break;
+            default:
+              term.white.bgMagenta("│");
+              break;
+          }
+        }
+        term.bgMagenta("│\n");
+        row = " ";
       });
-      row += "│";
-      console.log(row);
-      row = "│";
+      //print bottom border
+      term.bgMagenta("└");
+      for (let i = 0; i < this.fieldWidth; i++) {
+        term.bgMagenta("─");
+      }
+      term.bgMagenta("┘");
+      term("\n");
+      resolve(true);
     });
-    //create bottom border
-    row = "└";
-    for (let i = 0; i < this.fieldWidth; i++) {
-      row+= "─";
-    }
-    row+= "┘";
-    console.log(row);
   }
-  
   getInput() {
     let input = prompt("Which way? (wasd)");
     switch (input) {
@@ -142,12 +168,10 @@ class Field {
     }
     console.log();
   }
-
   movePlayer() {
     if (!this.isOutOfBounds() || !this.isHole())
       this.field[this.playerY][this.playerX] = playerCharacter;
   }
-
   isOutOfBounds() {
     if (
       this.playerY < 0 ||
@@ -155,24 +179,22 @@ class Field {
       this.playerX < 0 ||
       this.playerX >= this.field[0].length
     ) {
-      console.log("You went out of bounds. Game Over!\n");
+      term.red("^+You went out of bounds. Game Over!\n\n");
       return true;
     } else return false;
   }
-
   isHole() {
     if (!this.isOutOfBounds) {
       return true;
     }
     if (this.field[this.playerY][this.playerX] === hole) {
-      console.log("Sorry, you fell down a hole. Game Over!\n");
+      term.red("^+Sorry, you fell down a hole. Game Over!\n\n");
       return true;
     } else return false;
   }
-
   isWin() {
     if (this.field[this.playerY][this.playerX] === hat) {
-      console.log(`                 _
+      term.green(`^g^+                 _
                /\`_>
               / /
               |/
@@ -180,30 +202,30 @@ class Field {
          |    \\.-\`\`  )
          |---\`\`\\  _.'
       .-\`'---\`\`_.'
-     (__...--\`\`        \n\nCongrats! You found your hat!\n`);
+     (__...--\`\`        \n\nCongrats! You found your hat!\n\n`);
       return true;
     } else return false;
   }
   playGame() {
-    console.log(`Welcome to my version of the find your hat game!\n
-Instructions
+    term.wrap(`^mWelcome to my version of the find your hat game!\n
+^bInstructions^ 
     Icons
-        Player: ${playerCharacter}
-        Hat: ${hat} 
-        Hole: ${hole}
+        Player: ^c${playerCharacter}^ 
+        Hat: ^g^${hat} 
+        ^wHole: ^r${hole}^ 
         Field: ${fieldCharacter}
         Path: ${pathCharacter}\n
-The goal is to move the Player character through the field spaces and reach the Hat without falling in any holes or going out of bounds.
-\nUse your keyboard to type your input and then press ENTER\n
+^g^+The goal is to move the Player character through the field spaces and reach the Hat without falling in any holes or going out of bounds.^
+\n^bUse your keyboard to type your input and then press ENTER\n
 Use wasd for movement
   w for up ↑
   a for left ←
   s for down ↓
   d for right →
 
-Warning: I can not yet guarantee that every game can be won. That code is still in development.
+^r^+Warning:^ ^r^/I can not yet guarantee that every game can be won. That code is still in development.^ 
 
-Start by inputting the size of the field\n`);
+^+^CStart by inputting the size of the field\n\n`);
     this.generateField();
     while (!this.isOutOfBounds() && !this.isWin() && !this.isHole()) {
       this.print();
