@@ -2,11 +2,11 @@ const prompt = require("prompt-sync")({ sigint: true });
 
 const hat = "^";
 const hole = "O";
-const fieldCharacter = "░";
-const pathCharacter = "▓";
+const fieldCharacter = "▓";
+const pathCharacter = "░";
 const playerCharacter = "*";
-const holePercent = 0.4;
-const maxHolePerRow = 0.35;
+let holePercent = 0.60;
+let maxHolePerRow = 0.60;
 const maxSize = 25;
 const minSize = 5;
 
@@ -15,22 +15,26 @@ class Field {
     this.field = [];
     this.playerY = 0;
     this.playerX = 0;
-    this.fieldHeight = 0;
-    this.fieldWidth = 0;
+    this.fieldHeight = 10;
+    this.fieldWidth = 10;
     this.hatX = 0;
     this.hatY = 0;
     //properties used to check if field is solvable
-    this.solver = [];
-    this.solverWasHere = [];
-    this.booleanField = []
+    this.solver = []; //boolean array with a solution to the maze
+    this.solverWasHere = []; //has the solver been to this set of coordinates
+    this.booleanField = [] //boolean version of the field
+    //properties used for hard mode
+    this.hardmode = false;
+    this.play = true;
   }
-  badNumber(number) {
+  
+  badNumber(number, min, max) {
     if (
       typeof number != "number" ||
       (typeof number === "number" &&
-        (number < minSize || number > maxSize || number % 1 != 0))
+        (number < min || number > max || number % 1 != 0))
     ) {
-      console.log(`\nInvalid Input! Please enter a whole number value between ${minSize} and ${maxSize}\n`);
+      console.log(`\nInvalid Input! Please enter a whole number value between ${min} and ${max}\n`);
       return true;
     } else return false;
   }
@@ -191,6 +195,8 @@ class Field {
   movePlayer() {
     if (!this.isOutOfBounds() || !this.isHole())
       this.field[this.playerY][this.playerX] = playerCharacter;
+    if(this.hardmode)
+        this.addHole()
   }
 
   isOutOfBounds() {
@@ -201,8 +207,8 @@ class Field {
       this.playerX >= this.field[0].length
     ) {
       console.log("You went out of bounds. Game Over!\n");
-      return true;
-    } else return false;
+      this.play = false;
+    }
   }
 
   isHole() {
@@ -211,8 +217,8 @@ class Field {
     }
     if (this.field[this.playerY][this.playerX] === hole) {
       console.log("Sorry, you fell down a hole. Game Over!\n");
-      return true;
-    } else return false;
+      this.play = false;
+    }
   }
 
   isWin() {
@@ -226,11 +232,150 @@ class Field {
          |---\`\`\\  _.'
       .-\`'---\`\`_.'
      (__...--\`\`        \n\nCongrats! You found your hat!\n`);
-      return true;
-    } else return false;
+     this.play = false;
+   }
   }
-  
-  playGame() {
+
+  settings() {
+    console.log('\nSETTINGS')
+    //set size of field
+    if(this.ask('change the size of the field')){
+      console.log(`\nSET DIMENSIONS OF THE GAME FIELD`)
+      this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
+      while (this.badNumber(this.fieldWidth, minSize, maxSize)) {
+        this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
+      }
+      this.fieldHeight = Number(prompt(`Field height (${minSize}-${maxSize}): `));
+      while (this.badNumber(this.fieldHeight, minSize, maxSize)) {
+        this.fieldHeight = Number(prompt(`Field height (${minSize}-${maxSize}): `));
+      }
+    }
+    //set hardmode on or off
+    console.log(`\nHARD MODE: hard mode will randomly add a hole after every move you make. The game will automatically end if the game is no longer solvable.`)
+    this.hardmode = this.ask('activate HARD MODE')
+    //change percentage of holes
+    if(this.ask('increase or decrease the amount of holes')) {
+      console.log('\nSET PERCENT OF HOLES\n1= Minimum Holes, 10= Maximum Holes')
+      let numHoles = Number(prompt(`Choose a number from 1-10: `))
+      while (this.badNumber(numHoles, 1, 10)) {
+        numHoles = Number(prompt(`Choose a number from 1-10: `))
+      }
+      switch (numHoles) {
+        case 1:
+          holePercent = 0.2
+          maxHolePerRow = 0.1
+          break;
+        case 2:
+          holePercent = 0.25
+          maxHolePerRow = 0.2
+          break;
+        case 3:
+          holePercent = 0.3
+          maxHolePerRow = 0.3
+          break;
+        case 4:
+          holePercent = 0.4
+          maxHolePerRow = 0.4
+          break;
+        case 5:
+          holePercent = 0.5
+          maxHolePerRow = 0.5
+          break;
+        case 6:
+          holePercent = 0.6
+          maxHolePerRow = 0.6
+          break;
+        case 7:
+          holePercent = 0.7
+          maxHolePerRow = 0.7
+          break;
+        case 8:
+          holePercent = 0.75
+          maxHolePerRow = 0.75
+          break;
+        case 9:
+          holePercent = 0.8
+          maxHolePerRow = 0.8
+          break;
+        case 10:
+          holePercent = 0.85
+          maxHolePerRow = 0.85
+          break;
+      }
+    }
+    console.log(`Settings established. Please enjoy the game!`)
+  }
+
+  addHole(){
+    let newHoleX = Math.floor(Math.random() * (this.fieldWidth));
+    let newHoleY = Math.floor(Math.random() * (this.fieldHeight));
+    let numEmptySpaces = 0;
+
+    this.field.forEach((y) => {
+      y.forEach((x) => {
+        if(x === pathCharacter || x === fieldCharacter) numEmptySpaces ++;
+      });
+    })
+    
+    while(
+      (
+        this.field[newHoleY][newHoleX] === hole ||
+        this.field[newHoleY][newHoleX] === playerCharacter ||
+        this.field[newHoleY][newHoleX] === hat      
+      ) 
+      && numEmptySpaces > 0
+    ) {
+      newHoleX = Math.floor(Math.random() * (this.fieldWidth));
+      newHoleY = Math.floor(Math.random() * (this.fieldHeight));
+    }
+
+    if (numEmptySpaces != 0) {
+      this.field[newHoleY][newHoleX] = hole;
+    }
+    console.log(`New Hole Added!`)
+    //reset values for validateField
+    this.solver = []; //boolean array with a solution to the maze
+    this.solverWasHere = []; //has the solver been to this set of coordinates
+    this.booleanField = [] //boolean version of the field
+    let solverRowItems = [];
+    let booleanRowItems = []
+    this.field.forEach((y) => {
+     y.forEach((x) => {
+        solverRowItems.push(false);
+        switch (x) {
+          case hole:
+              booleanRowItems.push(true);
+            break;
+          default:
+            booleanRowItems.push(false);
+            break;
+        }
+      })
+      this.solver.push(solverRowItems)
+      this.solverWasHere.push(solverRowItems)
+      this.booleanField.push(booleanRowItems)
+      solverRowItems = [];
+      booleanRowItems = [];
+    })
+    if(!this.validateField(this.playerX, this.playerY)) {
+      this.play = false
+      this.print()
+      console.log('You can no longer reach the hat! Game Over!')
+    }    
+  }
+
+  ask(question) {
+    console.log()
+    let input = prompt(`Would you like to ${question}? (y/n) `).toLowerCase()
+    while (input != 'y' && input != 'n') {
+      console.log(`Invalid input. Please enter y to ${question} or n to decline.`)
+      input = prompt(`Would you like to ${question}? (y/n) `).toLowerCase()
+    }
+    if (input === 'y') return true;
+    else return false
+  }
+
+  instructions() {
     console.log(`Welcome to my version of the find your hat game!\n
 Instructions
     Icons
@@ -240,46 +385,39 @@ Instructions
         Field: ${fieldCharacter}
         Path: ${pathCharacter}\n
 The goal is to move the Player character through the field spaces and reach the Hat without falling in any holes or going out of bounds.
-\nUse your keyboard to type your input and then press ENTER\n
 Use wasd for movement
   w for up ↑
   a for left ←
   s for down ↓
-  d for right →
+  d for right →\n`)
+  }
+  
+  playGame() {
+    console.log(`Welcome to my version of the find your hat game!\n\nUse your keyboard to type your input and then press ENTER`);  
 
-Start by inputting the size of the field\n`);  
-    this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
-    while (this.badNumber(this.fieldWidth)) {
-      this.fieldWidth = Number(prompt(`Field width (${minSize}-${maxSize}): `));
+    if(this.ask('view the instructions')) this.instructions();
+    
+    if (this.ask('adjust the settings')) {
+      console.log()  
+      this.settings()
     }
-    this.fieldHeight = Number(prompt(`Field height (${minSize}-${maxSize}):)`));
-    while (this.badNumber(this.fieldHeight)) {
-      this.fieldHeight = Number(
-        prompt(`Field height (${minSize}-${maxSize}): `)
-      );
-    }
+    
     this.generateField();
-    while (!this.isOutOfBounds() && !this.isWin() && !this.isHole()) {
+    while (this.play) {
       this.print();
       this.getInput();
-      if (this.isOutOfBounds() || this.isWin() || this.isHole()) {
-        break;
-      }
-      this.movePlayer();
+      this.isOutOfBounds()
+      this.isWin()
+      this.isHole() 
+      if(this.play)
+        this.movePlayer();
     }
-  }
-
-  printField(array) {
-    //console.clear();
-    let row = "";
-    array.forEach((y) => {
-      y.forEach((x) => {
-        row += ' ' + x;
-        if(x === true) row += ' '
-      });
-      console.log(row);
-      row = "";
-    });
+    
+    if (this.ask('play again')) {
+      console.log()  
+      this.playGame()
+    }
+    else console.log(`Thank you for playing! Goodbye :)`)
   }
 }
 
