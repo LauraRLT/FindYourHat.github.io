@@ -407,8 +407,10 @@ Use wasd for movement
       this.print();
       this.getInput();
       this.isOutOfBounds()
-      this.isWin()
-      this.isHole() 
+      if(this.play)
+        this.isHole()
+      if(this.play)
+        this.isWin()
       if(this.play)
         this.movePlayer();
     }
